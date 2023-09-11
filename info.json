@@ -1,0 +1,13 @@
+{
+    "name": "multiple-characters",
+    "version": "0.2.5",
+    "title": "Multiple Characters",
+    "author": "Mathegenie03",
+    "description": "Allows you to place and switch between multiple characters.\nThis mechanic is taken from Nullius",
+    "factorio_version": "1.1",
+    "dependencies": [
+        "base >= 1.1",
+        "! bobclasses",
+        "! nullius"
+    ]
+}
