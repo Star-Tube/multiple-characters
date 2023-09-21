@@ -8,18 +8,18 @@ function switch_to(player, target)
 	if target.type == "car" or target.type == "spider-vehicle" then
 		local driver = target.get_driver()
 
-		if (driver ~= nil) and driver.valid and driver.player ~= player then
+		if driver ~= nil and driver.valid and driver.player ~= player then
 			target = driver
 		else
 			target = target.get_passenger()
 
-			if ((target == nil) or (not target.valid)) then return end
+			if target == nil or not target.valid then return end
 		end
 	elseif target.type == "locomotive" or target.type == "cargo-wagon" or target.type == "fluid-wagon" or target.type == "artillery-wagon" then
 		target = target.get_driver()
-		if ((target == nil) or (not target.valid)) then return end
+		if target == nil or not target.valid then return end
 	end
-	if ((target.type ~= "character") or (target.force ~= player.force)) then
+	if target.type ~= "character" or target.force ~= player.force then
 		return
 	end
 
@@ -30,6 +30,36 @@ function switch_to(player, target)
 	update_queue(player, oldchar)
 
 	update_guis()
+end
+
+---@param player LuaPlayer
+---@param target (LuaEntity|LuaPlayer)?
+---@return boolean
+function is_valid_target(player, target)
+	if target == nil then return false end
+
+	if target.type == "car" or target.type == "spider-vehicle" then
+		local driver = target.get_driver()
+
+		if driver ~= nil and driver.valid and driver.player ~= player then
+			target = driver
+		else
+			target = target.get_passenger()
+
+			if target == nil or not target.valid then return false end
+		end
+	elseif target.type == "locomotive" or target.type == "cargo-wagon" or target.type == "fluid-wagon" or target.type == "artillery-wagon" then
+		target = target.get_driver()
+		if target == nil or not target.valid then return false end
+	end
+	if target.type ~= "character" or target.force ~= player.force then
+		return false
+	end
+
+	local oldchar = player.character
+	if target == oldchar or oldchar == nil then return false end
+
+	return true
 end
 
 ---@param player LuaPlayer
@@ -360,7 +390,7 @@ end)
 script.on_event("switch-to-character", function(event)
 	local player = game.players[event.player_index]
 	local target = player.selected
-	if target ~= nil and target.valid then
+	if is_valid_target(player, target) then
 		switch_to(player, target)
 	else
 		toggle_gui(player)
