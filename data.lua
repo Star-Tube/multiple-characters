@@ -1,3 +1,5 @@
+require("style")
+
 data:extend {
 	{
 		type = "custom-input",
