@@ -98,8 +98,8 @@ function build_table(player)
 
         local chart_player_index = nil
         local position = character.position
-        if character.player == player then
-            chart_player_index = player.index
+        if character.player ~= nil then
+            chart_player_index = character.player.index
             position = nil
         end
 

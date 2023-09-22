@@ -100,9 +100,15 @@ function switch_character(player, target)
 		if settings.get_player_settings(player)["character-swap"].value and settings.get_player_settings(target.player)["character-swap"].value then
 			local other_char = target_player.character
 
+			local opened = player.opened
+			local target_opened = target_player.opened
+
 			target_player.set_controller { type = defines.controllers.ghost }
 			player.set_controller { type = defines.controllers.character, character = target }
 			target_player.set_controller { type = defines.controllers.character, character = old_char }
+
+			player.opened = opened
+			target_player.opened = target_opened
 
 			if vehicle ~= nil and old_char ~= nil then
 				if vehicle.type == "car" or vehicle.type == "spider-vehicle" then
@@ -129,7 +135,11 @@ function switch_character(player, target)
 			end
 		end
 	else
+		local opened = player.opened
+
 		player.set_controller { type = defines.controllers.character, character = target }
+
+		player.opened = opened
 
 		old_char.walking_state = { walking = false, direction = defines.direction.south }
 
@@ -149,14 +159,14 @@ function switch_character(player, target)
 		end
 	end
 
-	if (global.character_queue ~= nil) then
+	if global.character_queue ~= nil then
 		local queue = global.character_queue[player.index]
-		if (queue ~= nil) then
+		if queue ~= nil then
 			queue.last_index = target.unit_number
 		end
 	end
 
-	if ((target_vehicle ~= nil) and (target_vehicle.get_driver() == nil) and (target == target_vehicle.get_passenger())) then
+	if target_vehicle ~= nil and target_vehicle.get_driver() == nil and target == target_vehicle.get_passenger() then
 		target_vehicle.set_passenger(nil)
 		target_vehicle.set_driver(target)
 	end

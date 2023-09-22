@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.2
+  Bugfixes:
+    - Fix GUIs not being "opened" when switching characters
+    - Make minimaps of characters of other players update
+---------------------------------------------------------------------------------------------------
 Version: 0.3.1
   Bugfixes:
     - Add controls locale
