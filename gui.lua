@@ -71,6 +71,8 @@ function build_table(player)
     table.clear()
 
     for _, character in pairs(global.unit_number_character) do
+        if not character.valid then goto continue end
+
         local outer_frame = table.add { type = "frame", direction = "horizontal", style = "mult_chars_char_frame" }
         outer_frame.style.width = 128 + 16 + 8
         outer_frame.style.height = 128 + 40 + 24 + 12
@@ -151,6 +153,7 @@ function build_table(player)
         end
 
         local label = h_flow.add { type = "label", caption = name }
+        ::continue::
     end
 end
 

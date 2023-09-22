@@ -349,8 +349,10 @@ function register_character(character)
 	update_guis()
 end
 
----@param character LuaEntity
+---@param character LuaEntity?
 function unregister_character(character)
+	if character == nil then return end
+
 	global.unit_number_character[character.unit_number] = nil
 
 	if global.character_tag[character.unit_number] ~= nil then
@@ -447,6 +449,16 @@ script.on_event(defines.events.on_player_joined_game, function(event)
 	if character ~= nil then
 		character.minable = false
 	end
+end)
+
+script.on_event(defines.events.on_pre_player_left_game, function(event)
+	local player = game.players[event.player_index]
+	local character = player.character
+	if character == nil then
+		character = player.cutscene_character
+	end
+
+	unregister_character(character)
 end)
 
 script.on_event(defines.events.on_built_entity, function(event)

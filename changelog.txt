@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.3
+  Bugfixes:
+    - Fix invalid character when player leaves the game
+---------------------------------------------------------------------------------------------------
 Version: 0.3.2
   Bugfixes:
     - Fix GUIs not being "opened" when switching characters
