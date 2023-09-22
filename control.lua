@@ -339,7 +339,7 @@ end
 
 ---@param character LuaEntity?
 function register_character(character)
-	if character == nil then return end
+	if character == nil or not character.valid then return end
 
 	if global.unit_number_character == nil then
 		global.unit_number_character = {}
@@ -351,7 +351,7 @@ end
 
 ---@param character LuaEntity?
 function unregister_character(character)
-	if character == nil then return end
+	if character == nil or not character.valid then return end
 
 	global.unit_number_character[character.unit_number] = nil
 
