@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.5
+  Bugfixes:
+    - Fix crash when changing mod config and there is a character without chart tag
+---------------------------------------------------------------------------------------------------
+Version: 0.3.4
+  Bugfixes:
+    - Fix crash when dying
+---------------------------------------------------------------------------------------------------
 Version: 0.3.3
   Bugfixes:
     - Fix invalid character when player leaves the game

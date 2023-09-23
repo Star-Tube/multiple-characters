@@ -355,13 +355,17 @@ function unregister_character(character)
 
 	global.unit_number_character[character.unit_number] = nil
 
-	if global.character_tag[character.unit_number] ~= nil then
+	if global.character_tag and global.character_tag[character.unit_number] ~= nil then
 		local tag = global.character_tag[character.unit_number]
 
 		global.character_tag[character.unit_number] = nil
-		global.tag_character[tag.tag_number] = nil
 
-		tag.destroy()
+		if tag and tag.valid then
+			if global.tag_character ~= nil then
+				global.tag_character[tag.tag_number] = nil
+			end
+			tag.destroy()
+		end
 	end
 
 	update_guis()
@@ -495,7 +499,7 @@ script.on_event(defines.events.on_player_created, function(event)
 end)
 
 script.on_event(defines.events.on_pre_player_died, function(event)
-	local character = game.player[event.player_index].character
+	local character = game.players[event.player_index].character
 	unregister_character(character)
 end)
 
