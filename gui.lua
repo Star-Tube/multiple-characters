@@ -73,19 +73,17 @@ function build_table(player)
     for _, character in pairs(global.unit_number_character) do
         if not character.valid then goto continue end
 
-        local outer_frame = table.add { type = "frame", direction = "horizontal", style = "mult_chars_char_frame" }
-        outer_frame.style.width = 128 + 16 + 8
-        outer_frame.style.height = 128 + 40 + 24 + 12
-        outer_frame.style.padding = 8
+        local outer_frame = table.add {
+            type = "frame",
+            direction = "horizontal",
+            style = "mult_chars_char_frame"
+        }
 
         local v_flow = outer_frame.add {
             type = "flow",
             direction = "vertical"
         }
-        -- v_flow.style.vertical_align = "center"
-        -- v_flow.style.horizontal_align = "center"
         v_flow.style.vertical_spacing = 12
-        -- v_flow.style.margin = 0
 
         local button = v_flow.add {
             type = "button",
@@ -95,8 +93,6 @@ function build_table(player)
                 character_unit_number = character.unit_number,
             }
         }
-        button.style.width = 128
-        button.style.height = 128
 
         local chart_player_index = nil
         local position = character.position
@@ -107,7 +103,6 @@ function build_table(player)
 
         local minimap = button.add {
             type = "minimap",
-            name = "mult_chars_minimap",
             position = position,
             chart_player_index = chart_player_index,
             surface_index = character.surface_index,
@@ -115,10 +110,6 @@ function build_table(player)
             ignored_by_interaction = true,
             style = "mult_chars_minimap"
         }
-        minimap.style.width = 128 - 2
-        minimap.style.height = 128 - 2
-        minimap.style.vertical_align = "center"
-        minimap.style.horizontal_align = "center"
 
         local frame = v_flow.add {
             type = "frame",
@@ -130,14 +121,22 @@ function build_table(player)
         }
         h_flow.style.vertical_align = "center"
         h_flow.style.horizontal_align = "left"
-        h_flow.style.width = 128
+        h_flow.style.horizontally_stretchable = "on"
         h_flow.style.margin = 0
+        h_flow.style.padding = 2
+
+        local style = "mult_chars_character_button"
+        if player == character.player then
+            style = "mult_chars_active_character_button"
+        elseif character.player ~= nil then
+            style = "mult_chars_other_character_button"
+        end
 
         h_flow.add {
             type = "sprite-button",
             name = "mult_chars_char",
             sprite = "item/" .. character.name,
-            style = "recipe_slot_button",
+            style = style,
             tags = {
                 action = "mult_chars_switch_character",
                 character_unit_number = character.unit_number,
@@ -156,15 +155,6 @@ function build_table(player)
         ::continue::
     end
 end
-
-script.on_configuration_changed(function(config_changed_data)
-    if config_changed_data.mod_changes["multiple-characters"] then
-        for _, player in pairs(game.players) do
-            local main_frame = player.gui.screen.mult_chars_main_frame
-            if main_frame ~= nil then toggle_gui(player) end
-        end
-    end
-end)
 
 script.on_event(defines.events.on_gui_closed, function(event)
     if event.element and event.element.name == "mult_chars_main_frame" then

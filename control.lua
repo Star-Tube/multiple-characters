@@ -3,28 +3,9 @@ require("gui")
 ---@param player LuaPlayer
 ---@param target (LuaEntity|LuaPlayer)?
 function switch_to(player, target)
-	if target == nil then return end
+	target = get_character(player, target)
 
-	if target.type == "car" or target.type == "spider-vehicle" then
-		local driver = target.get_driver()
-
-		if driver ~= nil and driver.valid and driver.player ~= player then
-			target = driver
-		else
-			target = target.get_passenger()
-
-			if target == nil or not target.valid then return end
-		end
-	elseif target.type == "locomotive" or target.type == "cargo-wagon" or target.type == "fluid-wagon" or target.type == "artillery-wagon" then
-		target = target.get_driver()
-		if target == nil or not target.valid then return end
-	end
-	if target.type ~= "character" or target.force ~= player.force then
-		return
-	end
-
-	local oldchar = player.character
-	if target == oldchar or oldchar == nil then return end
+	if target == nil then return nil end
 
 	switch_character(player, target)
 	update_queue(player, oldchar)
@@ -33,10 +14,10 @@ function switch_to(player, target)
 end
 
 ---@param player LuaPlayer
----@param target (LuaEntity|LuaPlayer)?
----@return boolean
-function is_valid_target(player, target)
-	if target == nil then return false end
+---@param target LuaEntity?
+---@return LuaEntity?
+function get_character(player, target)
+	if target == nil then return nil end
 
 	if target.type == "car" or target.type == "spider-vehicle" then
 		local driver = target.get_driver()
@@ -45,21 +26,19 @@ function is_valid_target(player, target)
 			target = driver
 		else
 			target = target.get_passenger()
-
-			if target == nil or not target.valid then return false end
 		end
 	elseif target.type == "locomotive" or target.type == "cargo-wagon" or target.type == "fluid-wagon" or target.type == "artillery-wagon" then
 		target = target.get_driver()
-		if target == nil or not target.valid then return false end
 	end
-	if target.type ~= "character" or target.force ~= player.force then
-		return false
-	end
+
+	if target == nil or not target.valid then return nil end
+
+	if target.type ~= "character" or target.force ~= player.force then return nil end
 
 	local oldchar = player.character
-	if target == oldchar or oldchar == nil then return false end
+	if target == oldchar or oldchar == nil then return nil end
 
-	return true
+	return target
 end
 
 ---@param player LuaPlayer
@@ -73,6 +52,7 @@ function switch_character(player, target)
 
 	if global.character_tag ~= nil then
 		local tag = global.character_tag[target.unit_number]
+
 		if tag ~= nil then
 			global.character_tag[target.unit_number] = nil
 			if tag.valid then
@@ -117,7 +97,7 @@ function switch_character(player, target)
 					elseif vehicle.get_passenger() == nil then
 						vehicle.set_passenger(old_char)
 					end
-				elseif ((vehicle.type == "locomotive" or vehicle.type == "cargo-wagon" or vehicle.type == "fluid-wagon" or vehicle.type == "artillery-wagon") and (vehicle.get_driver() == nil)) then
+				elseif (vehicle.type == "locomotive" or vehicle.type == "cargo-wagon" or vehicle.type == "fluid-wagon" or vehicle.type == "artillery-wagon") and vehicle.get_driver() == nil then
 					vehicle.set_driver(old_char)
 				end
 			end
@@ -147,8 +127,12 @@ function switch_character(player, target)
 		target.minable = false
 
 		if vehicle ~= nil and old_char ~= nil then
-			if (vehicle.type == "car" or vehicle.type == "spider-vehicle") and vehicle.get_passenger() == nil then
-				vehicle.set_passenger(old_char)
+			if vehicle.type == "car" or vehicle.type == "spider-vehicle" then
+				if vehicle.get_passenger() == nil then
+					vehicle.set_passenger(old_char)
+				elseif vehicle.get_driver() == nil then
+					vehicle.set_driver(old_char)
+				end
 			elseif (vehicle.type == "locomotive" or vehicle.type == "cargo-wagon" or vehicle.type == "fluid-wagon" or vehicle.type == "artillery-wagon") and vehicle.get_driver() == nil then
 				vehicle.set_driver(old_char)
 			else
@@ -328,7 +312,7 @@ function add_chart_tag(player, character)
 			last_user = player
 		})
 	if ctag ~= nil then
-		if (global.tag_character == nil) then
+		if global.tag_character == nil then
 			global.tag_character = {}
 			global.character_tag = {}
 		end
@@ -344,8 +328,10 @@ function register_character(character)
 	if global.unit_number_character == nil then
 		global.unit_number_character = {}
 	end
-
 	global.unit_number_character[character.unit_number] = character
+
+	character.minable = (character.player == nil)
+
 	update_guis()
 end
 
@@ -364,6 +350,7 @@ function unregister_character(character)
 			if global.tag_character ~= nil then
 				global.tag_character[tag.tag_number] = nil
 			end
+
 			tag.destroy()
 		end
 	end
@@ -371,42 +358,26 @@ function unregister_character(character)
 	update_guis()
 end
 
-script.on_configuration_changed(function(config_data)
-	if global.unit_number_character ~= nil then
-		for _, character in pairs(global.unit_number_character) do
-			unregister_character(character)
+script.on_configuration_changed(function(config_changed_data)
+	if config_changed_data.mod_changes["multiple-characters"] then
+		for _, surface in pairs(game.surfaces) do
+			for _, character in pairs(surface.find_entities_filtered { type = "character" }) do
+				register_character(character)
+			end
 		end
-	end
 
-	for _, surface in pairs(game.surfaces) do
-		for _, character in pairs(surface.find_entities_filtered { type = "character" }) do
-			register_character(character)
-		end
-	end
-end)
-
-script.on_event(defines.events.on_player_respawned, function(event)
-	local player = game.players[event.player_index]
-	local newchar = player.character
-	if newchar == nil or not newchar.valid then return end
-
-	if global.character_queue == nil then return end
-	local queue = global.character_queue[player.index]
-	if queue == nil then return end
-	if queue.nodes[newchar.unit_number] ~= nil then return end
-
-	for _, node in pairs(queue.nodes) do
-		if node.body == nil or not node.body.valid then
-			change_character_entity(node.unit, newchar)
-			return
+		for _, player in pairs(game.players) do
+			local main_frame = player.gui.screen.mult_chars_main_frame
+			if main_frame ~= nil then toggle_gui(player) end
 		end
 	end
 end)
 
 script.on_event("switch-to-character", function(event)
 	local player = game.players[event.player_index]
-	local target = player.selected
-	if is_valid_target(player, target) then
+	local target = get_character(player, player.selected)
+
+	if target ~= nil then
 		switch_to(player, target)
 	else
 		toggle_gui(player)
@@ -427,18 +398,27 @@ script.on_event(defines.events.on_chart_tag_removed, function(event)
 	if not (global.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
 
 	local character = global.tag_character[event.tag.tag_number]
-	if character == nil then return end
+	if character == nil or not character.valid then return end
 
-	global.tag_character[event.tag.tag_number] = nil
-	if not character.valid then return end
-
-	global.character_tag[character.unit_number] = nil
 	if event.player_index == nil then return end
 
 	local player = game.players[event.player_index]
 	if player == nil then return end
 
 	switch_to(player, character)
+end)
+
+script.on_event(defines.events.on_chart_tag_modified, function(event)
+	if not (global.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
+
+	local character = global.tag_character[event.tag.tag_number]
+	if character == nil or not character.valid then return end
+
+	if global.character_name == nil then
+		global.character_name = {}
+	end
+	global.character_name[character.unit_number] = event.tag.text
+	update_guis()
 end)
 
 script.on_event(defines.events.on_player_joined_game, function(event)
@@ -448,7 +428,14 @@ script.on_event(defines.events.on_player_joined_game, function(event)
 		character = player.cutscene_character
 	end
 
+	if character == nil or not character.valid then return end
+
 	register_character(character)
+
+	if global.character_name == nil then
+		global.character_name = {}
+	end
+	global.character_name[character.unit_number] = player.name
 
 	if character ~= nil then
 		character.minable = false
@@ -468,8 +455,15 @@ end)
 script.on_event(defines.events.on_built_entity, function(event)
 	if event.created_entity.type ~= "character" then return end
 
+	local player = game.players[event.player_index]
 	local character = event.created_entity
 	register_character(character)
+
+	if global.character_name == nil then
+		global.character_name = {}
+	end
+	global.character_name[character.unit_number] = player.name
+	add_chart_tag(player, character)
 
 	update_guis()
 end)
@@ -481,10 +475,27 @@ script.on_event(defines.events.on_player_respawned, function(event)
 		character = player.cutscene_character
 	end
 
+	if character == nil or not character.valid then return end
+
 	register_character(character)
 
-	if character ~= nil then
-		character.minable = false
+	if global.character_name == nil then
+		global.character_name = {}
+	end
+	global.character_name[character.unit_number] = player.name
+
+	character.minable = false
+
+	if global.character_queue == nil then return end
+	local queue = global.character_queue[player.index]
+	if queue == nil then return end
+	if queue.nodes[character.unit_number] ~= nil then return end
+
+	for _, node in pairs(queue.nodes) do
+		if node.body == nil or not node.body.valid then
+			change_character_entity(node.unit, character)
+			return
+		end
 	end
 end)
 
@@ -495,11 +506,21 @@ script.on_event(defines.events.on_player_created, function(event)
 		character = player.cutscene_character
 	end
 
+	if character == nil or not character.valid then return end
+
 	register_character(character)
+
+	if global.character_name == nil then
+		global.character_name = {}
+	end
+	global.character_name[character.unit_number] = player.name
 end)
 
 script.on_event(defines.events.on_pre_player_died, function(event)
 	local character = game.players[event.player_index].character
+
+	if character == nil or not character.valid then return end
+
 	unregister_character(character)
 end)
 
