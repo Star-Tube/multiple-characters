@@ -1,14 +1,14 @@
 require("gui")
 
 ---@param player LuaPlayer
----@param target (LuaEntity|LuaPlayer)?
+---@param target LuaEntity?
 function switch_to(player, target)
 	target = get_character(player, target)
 
 	if target == nil then return nil end
 
 	switch_character(player, target)
-	update_queue(player, oldchar)
+	update_queue(player, nil)
 
 	update_guis()
 end
@@ -19,26 +19,29 @@ end
 function get_character(player, target)
 	if target == nil then return nil end
 
-	if target.type == "car" or target.type == "spider-vehicle" then
+	local target_character = nil
+
+	if target.type == "character" then
+		target_character = target
+	elseif target.type == "car" or target.type == "spider-vehicle" then
 		local driver = target.get_driver()
 
 		if driver ~= nil and driver.valid and driver.player ~= player then
-			target = driver
+			target_character = driver
 		else
-			target = target.get_passenger()
+			target_character = target.get_passenger()
 		end
 	elseif target.type == "locomotive" or target.type == "cargo-wagon" or target.type == "fluid-wagon" or target.type == "artillery-wagon" then
-		target = target.get_driver()
+		target_character = target.get_driver()
 	end
 
-	if target == nil or not target.valid then return nil end
-
-	if target.type ~= "character" or target.force ~= player.force then return nil end
+	if target_character == nil or not target_character.valid or target_character.type ~= "character" or target_character.force ~= player.force then return nil end
+	---@cast target_character LuaEntity?
 
 	local oldchar = player.character
-	if target == oldchar or oldchar == nil then return nil end
+	if target_character == oldchar or oldchar == nil then return nil end
 
-	return target
+	return target_character
 end
 
 ---@param player LuaPlayer
@@ -121,25 +124,27 @@ function switch_character(player, target)
 
 		player.opened = opened
 
-		old_char.walking_state = { walking = false, direction = defines.direction.south }
-
-		old_char.minable = true
 		target.minable = false
 
-		if vehicle ~= nil and old_char ~= nil then
-			if vehicle.type == "car" or vehicle.type == "spider-vehicle" then
-				if vehicle.get_passenger() == nil then
-					vehicle.set_passenger(old_char)
-				elseif vehicle.get_driver() == nil then
+		if old_char ~= nil then
+			old_char.walking_state = { walking = false, direction = defines.direction.south }
+			old_char.minable = true
+
+			if vehicle ~= nil then
+				if vehicle.type == "car" or vehicle.type == "spider-vehicle" then
+					if vehicle.get_passenger() == nil then
+						vehicle.set_passenger(old_char)
+					elseif vehicle.get_driver() == nil then
+						vehicle.set_driver(old_char)
+					end
+				elseif (vehicle.type == "locomotive" or vehicle.type == "cargo-wagon" or vehicle.type == "fluid-wagon" or vehicle.type == "artillery-wagon") and vehicle.get_driver() == nil then
 					vehicle.set_driver(old_char)
+				else
+					add_chart_tag(player, old_char)
 				end
-			elseif (vehicle.type == "locomotive" or vehicle.type == "cargo-wagon" or vehicle.type == "fluid-wagon" or vehicle.type == "artillery-wagon") and vehicle.get_driver() == nil then
-				vehicle.set_driver(old_char)
 			else
 				add_chart_tag(player, old_char)
 			end
-		else
-			add_chart_tag(player, old_char)
 		end
 	end
 
@@ -157,7 +162,7 @@ function switch_character(player, target)
 end
 
 ---@param player LuaPlayer
----@param oldchar LuaEntity
+---@param oldchar LuaEntity?
 function update_queue(player, oldchar)
 	local newchar = player.character
 	if newchar == oldchar or newchar == nil or oldchar == nil then

@@ -31,5 +31,8 @@
     "Lua.runtime.special": {
         "__object_name": "type"
     },
-    "Lua.runtime.plugin": "/home/josua/.config/VSCodium/User/workspaceStorage/808f893370694e3c7ceddf6837761fd6/justarandomgeek.factoriomod-debug/sumneko-3rd/factorio/plugin.lua"
+    "Lua.runtime.plugin": "/home/josua/.config/VSCodium/User/workspaceStorage/808f893370694e3c7ceddf6837761fd6/justarandomgeek.factoriomod-debug/sumneko-3rd/factorio/plugin.lua",
+    "Lua.diagnostics.disable": [
+        "lowercase-global"
+    ]
 }
