@@ -49,7 +49,7 @@ function build_gui(player)
     }
     controls_flow.style.maximal_height = 500
     controls_flow.style.minimal_width = 608
-    controls_flow.style.horizontally_stretchable = "on"
+    controls_flow.style.horizontally_stretchable = true
 
     -- controls_flow.style = "controller_logistics_scroll_pane"
     -- controls_flow.style.maximal_height = 400
@@ -70,7 +70,7 @@ function build_table(player)
     local table = player.gui.screen.mult_chars_main_frame.content_frame.inner_frame.controls_flow.table
     table.clear()
 
-    for _, character in pairs(global.unit_number_character) do
+    for _, character in pairs(storage.unit_number_character) do
         if not character.valid then goto continue end
 
         local outer_frame = table.add {
@@ -121,7 +121,7 @@ function build_table(player)
         }
         h_flow.style.vertical_align = "center"
         h_flow.style.horizontal_align = "left"
-        h_flow.style.horizontally_stretchable = "on"
+        h_flow.style.horizontally_stretchable = true
         h_flow.style.margin = 0
         h_flow.style.padding = 2
 
@@ -144,8 +144,8 @@ function build_table(player)
         }
 
         local name = nil
-        if global.character_name ~= nil then
-            name = global.character_name[character.unit_number]
+        if storage.character_name ~= nil then
+            name = storage.character_name[character.unit_number]
         end
         if name == nil then
             name = player.name
@@ -166,7 +166,7 @@ end)
 script.on_event(defines.events.on_gui_click, function(event)
     if event.element.tags ~= nil and event.element.tags.action == "mult_chars_switch_character" then
         local player = game.players[event.player_index]
-        local character = global.unit_number_character[event.element.tags.character_unit_number]
+        local character = storage.unit_number_character[event.element.tags.character_unit_number]
         switch_to(player, character)
     end
 end)

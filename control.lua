@@ -53,17 +53,17 @@ function switch_character(player, target)
 		target_vehicle = target.vehicle
 	end
 
-	if global.character_tag ~= nil then
-		local tag = global.character_tag[target.unit_number]
+	if storage.character_tag ~= nil then
+		local tag = storage.character_tag[target.unit_number]
 
 		if tag ~= nil then
-			global.character_tag[target.unit_number] = nil
+			storage.character_tag[target.unit_number] = nil
 			if tag.valid then
-				if global.character_name == nil then
-					global.character_name = {}
+				if storage.character_name == nil then
+					storage.character_name = {}
 				end
-				global.character_name[target.unit_number] = tag.text
-				global.tag_character[tag.tag_number] = nil
+				storage.character_name[target.unit_number] = tag.text
+				storage.tag_character[tag.tag_number] = nil
 				tag.destroy()
 			end
 		end
@@ -71,19 +71,33 @@ function switch_character(player, target)
 
 	local old_char = player.character
 	local vehicle = player.vehicle
+
+	local opened = player.opened
+
 	if target.surface ~= player.surface then
 		player.set_controller { type = defines.controllers.ghost }
 		if not player.teleport(target.position, target.surface) then
 			player.set_controller { type = defines.controllers.character, character = old_char }
+
+			if opened ~= nil and opened.valid then
+				player.opened = opened
+			end
 			return
 		end
+	end
+
+	-- space platform
+	local platform = target.surface.platform
+
+	if platform ~= nil then
+		player.enter_space_platform(platform)
+		player.print({ "multiple-characters.space-platform" })
 	end
 
 	if target_player ~= nil then
 		if settings.get_player_settings(player)["character-swap"].value and settings.get_player_settings(target.player)["character-swap"].value then
 			local other_char = target_player.character
 
-			local opened = player.opened
 			local target_opened = target_player.opened
 
 			target_player.set_controller { type = defines.controllers.ghost }
@@ -118,11 +132,11 @@ function switch_character(player, target)
 			end
 		end
 	else
-		local opened = player.opened
-
 		player.set_controller { type = defines.controllers.character, character = target }
 
-		player.opened = opened
+		if opened ~= nil and opened.valid then
+			player.opened = opened
+		end
 
 		target.minable = false
 
@@ -148,8 +162,8 @@ function switch_character(player, target)
 		end
 	end
 
-	if global.character_queue ~= nil then
-		local queue = global.character_queue[player.index]
+	if storage.character_queue ~= nil then
+		local queue = storage.character_queue[player.index]
 		if queue ~= nil then
 			queue.last_index = target.unit_number
 		end
@@ -169,15 +183,15 @@ function update_queue(player, oldchar)
 		return
 	end
 
-	if global.character_queue == nil then
-		global.character_queue = {}
+	if storage.character_queue == nil then
+		storage.character_queue = {}
 	end
 
-	local queue = global.character_queue[player.index]
+	local queue = storage.character_queue[player.index]
 	if queue == nil then
 		queue = {}
 		queue.nodes = {}
-		global.character_queue[player.index] = queue
+		storage.character_queue[player.index] = queue
 	end
 
 	local node1 = queue.nodes[oldchar.unit_number]
@@ -210,8 +224,8 @@ end
 ---@param player LuaPlayer
 ---@param rev boolean
 function cycle_body(player, rev)
-	if global.character_queue == nil then return end
-	local queue = global.character_queue[player.index]
+	if storage.character_queue == nil then return end
+	local queue = storage.character_queue[player.index]
 	if queue == nil then return end
 
 	if player.character == nil then return end
@@ -228,7 +242,7 @@ function cycle_body(player, rev)
 		node = node.next
 	end
 	if node == nil then
-		global.character_queue[player.index] = nil
+		storage.character_queue[player.index] = nil
 		return
 	end
 
@@ -237,7 +251,7 @@ function cycle_body(player, rev)
 		local np = node.prev
 		local nn = node.next
 		if nn == nil or np == nil or nn.prev == nil or np.next == nil or nn == node or np == node then
-			global.character_queue[player.index] = nil
+			storage.character_queue[player.index] = nil
 			return
 		end
 		if body == nil or not body.valid or body.type ~= "character" then
@@ -260,25 +274,25 @@ function change_character_entity(oldunit, newchar)
 	local newunit = newchar.unit_number
 	if oldunit == nil or newunit == nil or newunit == oldunit then return end
 
-	if global.character_tag ~= nil and global.tag_character ~= nil then
-		local tag = global.character_tag[oldunit]
+	if storage.character_tag ~= nil and storage.tag_character ~= nil then
+		local tag = storage.character_tag[oldunit]
 		if tag ~= nil and tag.valid and tag.tag_number ~= nil then
-			global.character_tag[oldunit] = nil
-			global.character_tag[newunit] = tag
-			global.tag_character[tag.tag_number] = newchar
+			storage.character_tag[oldunit] = nil
+			storage.character_tag[newunit] = tag
+			storage.tag_character[tag.tag_number] = newchar
 		end
 
-		if global.character_name ~= nil then
-			local name = global.character_name[oldunit]
+		if storage.character_name ~= nil then
+			local name = storage.character_name[oldunit]
 			if name ~= nil then
-				global.character_name[oldunit] = nil
-				global.character_name[newunit] = name
+				storage.character_name[oldunit] = nil
+				storage.character_name[newunit] = name
 			end
 		end
 	end
 
-	if global.character_queue ~= nil then
-		for _, queue in pairs(global.character_queue) do
+	if storage.character_queue ~= nil then
+		for _, queue in pairs(storage.character_queue) do
 			local node = queue.nodes[oldunit]
 			if node ~= nil then
 				node.body = newchar
@@ -302,8 +316,8 @@ function add_chart_tag(player, character)
 	local icon = character.name
 
 	local name = nil
-	if global.character_name ~= nil then
-		name = global.character_name[character.unit_number]
+	if storage.character_name ~= nil then
+		name = storage.character_name[character.unit_number]
 	end
 	if name == nil then
 		name = player.name
@@ -317,12 +331,12 @@ function add_chart_tag(player, character)
 			last_user = player
 		})
 	if ctag ~= nil then
-		if global.tag_character == nil then
-			global.tag_character = {}
-			global.character_tag = {}
+		if storage.tag_character == nil then
+			storage.tag_character = {}
+			storage.character_tag = {}
 		end
-		global.tag_character[ctag.tag_number] = character
-		global.character_tag[character.unit_number] = ctag
+		storage.tag_character[ctag.tag_number] = character
+		storage.character_tag[character.unit_number] = ctag
 	end
 end
 
@@ -330,10 +344,10 @@ end
 function register_character(character)
 	if character == nil or not character.valid then return end
 
-	if global.unit_number_character == nil then
-		global.unit_number_character = {}
+	if storage.unit_number_character == nil then
+		storage.unit_number_character = {}
 	end
-	global.unit_number_character[character.unit_number] = character
+	storage.unit_number_character[character.unit_number] = character
 
 	character.minable = (character.player == nil)
 
@@ -344,16 +358,16 @@ end
 function unregister_character(character)
 	if character == nil or not character.valid then return end
 
-	global.unit_number_character[character.unit_number] = nil
+	storage.unit_number_character[character.unit_number] = nil
 
-	if global.character_tag and global.character_tag[character.unit_number] ~= nil then
-		local tag = global.character_tag[character.unit_number]
+	if storage.character_tag and storage.character_tag[character.unit_number] ~= nil then
+		local tag = storage.character_tag[character.unit_number]
 
-		global.character_tag[character.unit_number] = nil
+		storage.character_tag[character.unit_number] = nil
 
 		if tag and tag.valid then
-			if global.tag_character ~= nil then
-				global.tag_character[tag.tag_number] = nil
+			if storage.tag_character ~= nil then
+				storage.tag_character[tag.tag_number] = nil
 			end
 
 			tag.destroy()
@@ -400,9 +414,9 @@ script.on_event("next-character", function(event)
 end)
 
 script.on_event(defines.events.on_chart_tag_removed, function(event)
-	if not (global.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
+	if not (storage.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
 
-	local character = global.tag_character[event.tag.tag_number]
+	local character = storage.tag_character[event.tag.tag_number]
 	if character == nil or not character.valid then return end
 
 	if event.player_index == nil then return end
@@ -414,15 +428,15 @@ script.on_event(defines.events.on_chart_tag_removed, function(event)
 end)
 
 script.on_event(defines.events.on_chart_tag_modified, function(event)
-	if not (global.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
+	if not (storage.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
 
-	local character = global.tag_character[event.tag.tag_number]
+	local character = storage.tag_character[event.tag.tag_number]
 	if character == nil or not character.valid then return end
 
-	if global.character_name == nil then
-		global.character_name = {}
+	if storage.character_name == nil then
+		storage.character_name = {}
 	end
-	global.character_name[character.unit_number] = event.tag.text
+	storage.character_name[character.unit_number] = event.tag.text
 	update_guis()
 end)
 
@@ -437,10 +451,10 @@ script.on_event(defines.events.on_player_joined_game, function(event)
 
 	register_character(character)
 
-	if global.character_name == nil then
-		global.character_name = {}
+	if storage.character_name == nil then
+		storage.character_name = {}
 	end
-	global.character_name[character.unit_number] = player.name
+	storage.character_name[character.unit_number] = player.name
 
 	if character ~= nil then
 		character.minable = false
@@ -458,16 +472,16 @@ script.on_event(defines.events.on_pre_player_left_game, function(event)
 end)
 
 script.on_event(defines.events.on_built_entity, function(event)
-	if event.created_entity.type ~= "character" then return end
+	if event.entity.type ~= "character" then return end
 
 	local player = game.players[event.player_index]
-	local character = event.created_entity
+	local character = event.entity
 	register_character(character)
 
-	if global.character_name == nil then
-		global.character_name = {}
+	if storage.character_name == nil then
+		storage.character_name = {}
 	end
-	global.character_name[character.unit_number] = player.name
+	storage.character_name[character.unit_number] = player.name
 	add_chart_tag(player, character)
 
 	update_guis()
@@ -484,15 +498,15 @@ script.on_event(defines.events.on_player_respawned, function(event)
 
 	register_character(character)
 
-	if global.character_name == nil then
-		global.character_name = {}
+	if storage.character_name == nil then
+		storage.character_name = {}
 	end
-	global.character_name[character.unit_number] = player.name
+	storage.character_name[character.unit_number] = player.name
 
 	character.minable = false
 
-	if global.character_queue == nil then return end
-	local queue = global.character_queue[player.index]
+	if storage.character_queue == nil then return end
+	local queue = storage.character_queue[player.index]
 	if queue == nil then return end
 	if queue.nodes[character.unit_number] ~= nil then return end
 
@@ -515,10 +529,10 @@ script.on_event(defines.events.on_player_created, function(event)
 
 	register_character(character)
 
-	if global.character_name == nil then
-		global.character_name = {}
+	if storage.character_name == nil then
+		storage.character_name = {}
 	end
-	global.character_name[character.unit_number] = player.name
+	storage.character_name[character.unit_number] = player.name
 end)
 
 script.on_event(defines.events.on_pre_player_died, function(event)

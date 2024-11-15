@@ -1,7 +1,7 @@
 {
     "factorio.versions": [
         {
-            "name": "1.1.87",
+            "name": "steam",
             "factorioPath": "/home/josua/.steam/steam/steamapps/common/Factorio/bin/x64/factorio",
             "active": true
         }
@@ -11,8 +11,7 @@
         "/home/josua/.config/VSCodium/User/workspaceStorage/808f893370694e3c7ceddf6837761fd6/justarandomgeek.factoriomod-debug/sumneko-3rd/factorio/library"
     ],
     "Lua.workspace.userThirdParty": [
-        "/home/josua/.config/VSCodium/User/workspaceStorage/48bcffdb27cf1c9fadac8d9890aa9cad/justarandomgeek.factoriomod-debug/sumneko-3rd",
-        "/home/josua/.config/VSCodium/User/workspaceStorage/808f893370694e3c7ceddf6837761fd6/justarandomgeek.factoriomod-debug/sumneko-3rd"
+        "/home/josua/.config/VSCodium/User/workspaceStorage/255e89deaf67fc387bd905044266293c/justarandomgeek.factoriomod-debug/sumneko-3rd"
     ],
     "Lua.runtime.builtin": {
         "io": "disable",
@@ -34,5 +33,6 @@
     "Lua.runtime.plugin": "/home/josua/.config/VSCodium/User/workspaceStorage/808f893370694e3c7ceddf6837761fd6/justarandomgeek.factoriomod-debug/sumneko-3rd/factorio/plugin.lua",
     "Lua.diagnostics.disable": [
         "lowercase-global"
-    ]
+    ],
+    "Lua.workspace.checkThirdParty": "ApplyInMemory"
 }
