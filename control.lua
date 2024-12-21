@@ -86,14 +86,6 @@ function switch_character(player, target)
 		end
 	end
 
-	-- space platform
-	local platform = target.surface.platform
-
-	if platform ~= nil then
-		player.enter_space_platform(platform)
-		player.print({ "multiple-characters.space-platform" })
-	end
-
 	if target_player ~= nil then
 		if settings.get_player_settings(player)["character-swap"].value and settings.get_player_settings(target.player)["character-swap"].value then
 			local other_char = target_player.character
@@ -133,6 +125,12 @@ function switch_character(player, target)
 		end
 	else
 		player.set_controller { type = defines.controllers.character, character = target }
+
+		-- space platform
+		local platform = target.surface.platform
+		if platform ~= nil then
+			player.enter_space_platform(platform)
+		end
 
 		if opened ~= nil and opened.valid then
 			player.opened = opened
@@ -378,17 +376,15 @@ function unregister_character(character)
 end
 
 script.on_configuration_changed(function(config_changed_data)
-	if config_changed_data.mod_changes["multiple-characters"] then
-		for _, surface in pairs(game.surfaces) do
-			for _, character in pairs(surface.find_entities_filtered { type = "character" }) do
-				register_character(character)
-			end
+	for _, surface in pairs(game.surfaces) do
+		for _, character in pairs(surface.find_entities_filtered { type = "character" }) do
+			register_character(character)
 		end
+	end
 
-		for _, player in pairs(game.players) do
-			local main_frame = player.gui.screen.mult_chars_main_frame
-			if main_frame ~= nil then toggle_gui(player) end
-		end
+	for _, player in pairs(game.players) do
+		local main_frame = player.gui.screen.mult_chars_main_frame
+		if main_frame ~= nil then toggle_gui(player) end
 	end
 end)
 
