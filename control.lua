@@ -151,14 +151,12 @@ function switch_character(player, target)
 					end
 				elseif (vehicle.type == "locomotive" or vehicle.type == "cargo-wagon" or vehicle.type == "fluid-wagon" or vehicle.type == "artillery-wagon") and vehicle.get_driver() == nil then
 					vehicle.set_driver(old_char)
-				else
-					add_chart_tag(player, old_char)
 				end
-			else
-				add_chart_tag(player, old_char)
 			end
+			add_chart_tag(player, old_char)
 		end
 	end
+
 
 	if storage.character_queue ~= nil then
 		local queue = storage.character_queue[player.index]
@@ -375,6 +373,16 @@ function unregister_character(character)
 	update_guis()
 end
 
+---@param new_name string
+function rename_character(character_unit_number, new_name)
+	storage.character_name[character_unit_number] = new_name
+
+	local tag = storage.character_tag[character_unit_number]
+	if tag ~= nil then
+		tag.text = new_name
+	end
+end
+
 script.on_configuration_changed(function(config_changed_data)
 	for _, surface in pairs(game.surfaces) do
 		for _, character in pairs(surface.find_entities_filtered { type = "character" }) do
@@ -388,165 +396,194 @@ script.on_configuration_changed(function(config_changed_data)
 	end
 end)
 
-script.on_event("switch-to-character", function(event)
-	local player = game.players[event.player_index]
-	local target = get_character(player, player.selected)
+script.on_event("switch-to-character",
+	---@param event EventData.CustomInputEvent
+	function(event)
+		local player = game.players[event.player_index]
+		local target = get_character(player, player.selected)
 
-	if target ~= nil then
-		switch_to(player, target)
-	else
-		toggle_gui(player)
-	end
-end)
-
-script.on_event("previous-character", function(event)
-	local player = game.players[event.player_index]
-	cycle_body(player, true)
-end)
-
-script.on_event("next-character", function(event)
-	local player = game.players[event.player_index]
-	cycle_body(player, false)
-end)
-
-script.on_event(defines.events.on_chart_tag_removed, function(event)
-	if not (storage.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
-
-	local character = storage.tag_character[event.tag.tag_number]
-	if character == nil or not character.valid then return end
-
-	if event.player_index == nil then return end
-
-	local player = game.players[event.player_index]
-	if player == nil then return end
-
-	switch_to(player, character)
-end)
-
-script.on_event(defines.events.on_chart_tag_modified, function(event)
-	if not (storage.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
-
-	local character = storage.tag_character[event.tag.tag_number]
-	if character == nil or not character.valid then return end
-
-	if storage.character_name == nil then
-		storage.character_name = {}
-	end
-	storage.character_name[character.unit_number] = event.tag.text
-	update_guis()
-end)
-
-script.on_event(defines.events.on_player_joined_game, function(event)
-	local player = game.players[event.player_index]
-	local character = player.character
-	if character == nil then
-		character = player.cutscene_character
-	end
-
-	if character == nil or not character.valid then return end
-
-	register_character(character)
-
-	if storage.character_name == nil then
-		storage.character_name = {}
-	end
-	storage.character_name[character.unit_number] = player.name
-
-	if character ~= nil then
-		character.minable = false
-	end
-end)
-
-script.on_event(defines.events.on_pre_player_left_game, function(event)
-	local player = game.players[event.player_index]
-	local character = player.character
-	if character == nil then
-		character = player.cutscene_character
-	end
-
-	unregister_character(character)
-end)
-
-script.on_event(defines.events.on_built_entity, function(event)
-	if event.entity.type ~= "character" then return end
-
-	local player = game.players[event.player_index]
-	local character = event.entity
-	register_character(character)
-
-	if storage.character_name == nil then
-		storage.character_name = {}
-	end
-	storage.character_name[character.unit_number] = player.name
-	add_chart_tag(player, character)
-
-	update_guis()
-end)
-
-script.on_event(defines.events.on_player_respawned, function(event)
-	local player = game.players[event.player_index]
-	local character = player.character
-	if character == nil then
-		character = player.cutscene_character
-	end
-
-	if character == nil or not character.valid then return end
-
-	register_character(character)
-
-	if storage.character_name == nil then
-		storage.character_name = {}
-	end
-	storage.character_name[character.unit_number] = player.name
-
-	character.minable = false
-
-	if storage.character_queue == nil then return end
-	local queue = storage.character_queue[player.index]
-	if queue == nil then return end
-	if queue.nodes[character.unit_number] ~= nil then return end
-
-	for _, node in pairs(queue.nodes) do
-		if node.body == nil or not node.body.valid then
-			change_character_entity(node.unit, character)
-			return
+		if target ~= nil then
+			switch_to(player, target)
+		else
+			toggle_gui(player)
 		end
-	end
-end)
+	end)
 
-script.on_event(defines.events.on_player_created, function(event)
-	local player = game.players[event.player_index]
-	local character = player.character
-	if character == nil then
-		character = player.cutscene_character
-	end
+script.on_event("previous-character",
+	---@param event EventData.CustomInputEvent
+	function(event)
+		local player = game.players[event.player_index]
+		cycle_body(player, true)
+	end)
 
-	if character == nil or not character.valid then return end
+script.on_event("next-character",
+	---@param event EventData.CustomInputEvent
+	function(event)
+		local player = game.players[event.player_index]
+		cycle_body(player, false)
+	end)
 
-	register_character(character)
+script.on_event(defines.events.on_chart_tag_removed,
+	---@param event EventData.on_chart_tag_removed
+	function(event)
+		if not (storage.tag_character ~= nil and event.tag ~= nil and event.tag.valid) then return end
 
-	if storage.character_name == nil then
-		storage.character_name = {}
-	end
-	storage.character_name[character.unit_number] = player.name
-end)
+		local character = storage.tag_character[event.tag.tag_number]
+		if character == nil or not character.valid then return end
 
-script.on_event(defines.events.on_pre_player_died, function(event)
-	local character = game.players[event.player_index].character
+		if event.player_index == nil then return end
 
-	if character == nil or not character.valid then return end
+		local player = game.players[event.player_index]
+		if player == nil then return end
 
-	unregister_character(character)
-end)
+		switch_to(player, character)
+	end)
 
-script.on_event(defines.events.on_player_mined_entity, function(event)
-	if event.entity.type ~= "character" then return end
+script.on_event(defines.events.on_chart_tag_modified,
+	---@param event EventData.on_chart_tag_modified
+	function(event)
+		if not event.tag.valid then return end
 
-	unregister_character(event.entity)
-end)
+		local character = storage.tag_character[event.tag.tag_number]
+		if character == nil or not character.valid then return end
 
-script.on_event(defines.events.on_entity_died, function(event)
-	if event.entity.type ~= "character" then return end
+		rename_character(character.unit_number, event.tag.text)
 
-	unregister_character(event.entity)
-end)
+		if event.tag.position ~= event.old_position then
+			event.tag.destroy()
+			add_chart_tag(game.players[event.player_index], character)
+		end
+
+		update_guis()
+	end)
+
+script.on_event(defines.events.on_player_joined_game,
+	---@param event EventData.on_player_joined_game
+	function(event)
+		local player = game.players[event.player_index]
+		local character = player.character
+		if character == nil then
+			character = player.cutscene_character
+		end
+
+		if character == nil or not character.valid then return end
+
+		register_character(character)
+
+		if storage.character_name == nil then
+			storage.character_name = {}
+		end
+		storage.character_name[character.unit_number] = player.name
+
+		if character ~= nil then
+			character.minable = false
+		end
+	end)
+
+script.on_event(defines.events.on_pre_player_left_game,
+	---@param event EventData.on_pre_player_left_game
+	function(event)
+		local player = game.players[event.player_index]
+		local character = player.character
+		if character == nil then
+			character = player.cutscene_character
+		end
+
+		unregister_character(character)
+	end)
+
+script.on_event(defines.events.on_built_entity,
+	---@param event EventData.on_built_entity
+	function(event)
+		if event.entity.type ~= "character" then return end
+
+		local player = game.players[event.player_index]
+		local character = event.entity
+		register_character(character)
+
+		if storage.character_name == nil then
+			storage.character_name = {}
+		end
+		storage.character_name[character.unit_number] = player.name
+		add_chart_tag(player, character)
+
+		update_guis()
+	end)
+
+script.on_event(defines.events.on_player_respawned,
+	---@param event EventData.on_player_respawned
+	function(event)
+		local player = game.players[event.player_index]
+		local character = player.character
+		if character == nil then
+			character = player.cutscene_character
+		end
+
+		if character == nil or not character.valid then return end
+
+		register_character(character)
+
+		if storage.character_name == nil then
+			storage.character_name = {}
+		end
+		storage.character_name[character.unit_number] = player.name
+
+		character.minable = false
+
+		if storage.character_queue == nil then return end
+		local queue = storage.character_queue[player.index]
+		if queue == nil then return end
+		if queue.nodes[character.unit_number] ~= nil then return end
+
+		for _, node in pairs(queue.nodes) do
+			if node.body == nil or not node.body.valid then
+				change_character_entity(node.unit, character)
+				return
+			end
+		end
+	end)
+
+script.on_event(defines.events.on_player_created,
+	---@param event EventData.on_player_created
+	function(event)
+		local player = game.players[event.player_index]
+		local character = player.character
+		if character == nil then
+			character = player.cutscene_character
+		end
+
+		if character == nil or not character.valid then return end
+
+		register_character(character)
+
+		if storage.character_name == nil then
+			storage.character_name = {}
+		end
+		storage.character_name[character.unit_number] = player.name
+	end)
+
+script.on_event(defines.events.on_pre_player_died,
+	---@param event EventData.on_pre_player_died
+	function(event)
+		local character = game.players[event.player_index].character
+
+		if character == nil or not character.valid then return end
+
+		unregister_character(character)
+	end)
+
+script.on_event(defines.events.on_player_mined_entity,
+	---@param event EventData.on_player_mined_entity
+	function(event)
+		if event.entity.type ~= "character" then return end
+
+		unregister_character(event.entity)
+	end)
+
+script.on_event(defines.events.on_entity_died,
+	---@param event EventData.on_entity_died
+	function(event)
+		if event.entity.type ~= "character" then return end
+
+		unregister_character(event.entity)
+	end)
