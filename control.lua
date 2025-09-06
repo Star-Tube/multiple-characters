@@ -1,5 +1,13 @@
 require("gui")
 
+
+script.on_init(function()
+	if storage.tag_character == nil then
+		storage.tag_character = {}
+		storage.character_tag = {}
+	end
+end)
+
 ---@param player LuaPlayer
 ---@param target LuaEntity?
 function switch_to(player, target)
